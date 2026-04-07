@@ -30,7 +30,6 @@ function log(id, message) {
   console.log(msg)
   io.emit('log', { id, message: msg })
 }
-
 function broadcast() {
   const state = Object.keys(bots).map(id => ({
     id,
@@ -39,8 +38,10 @@ function broadcast() {
     health: bots[id].bot?.health || 20,
     food: bots[id].bot?.food || 20,
     pos: bots[id].bot?.entity?.position || { x: 0, y: 0, z: 0 }
-  }));
-  io.emit('bots', state);
+  }))
+
+  console.log("BROADCAST:", state)
+  io.emit('bots', state)
 }
 
 // ---- CLEANUP ----
@@ -191,26 +192,26 @@ app.get('/health', (req, res) => {
 
 
 // ---- SOCKET ----
-// io.on('connection', (socket) => {
-//   const state = Object.keys(bots).map(id => ({
-//     id,
-//     status: bots[id].status
-//   }))
-//   socket.emit('bots', state)
-// })
+io.on('connection', (socket) => {
+  const state = Object.keys(bots).map(id => ({
+    id,
+    status: bots[id].status
+  }))
+  socket.emit('bots', state)
+})
 
 // testing
 
-io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id)
-
-  // 👇 test event
-  socket.emit('test', 'backend alive')
-
-  socket.on('ping', () => {
-    socket.emit('pong', 'still alive')
-  })
-})
+// io.on('connection', (socket) => {
+//   console.log('Socket connected:', socket.id)
+//
+//   // 👇 test event
+//   socket.emit('test', 'backend alive')
+//
+//   socket.on('ping', () => {
+//     socket.emit('pong', 'still alive')
+//   })
+// })
 
 // ---- START ----
 server.listen(PORT, '0.0.0.0', () => {

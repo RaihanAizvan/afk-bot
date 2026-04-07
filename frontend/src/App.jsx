@@ -8,16 +8,16 @@ import socket from './services/socket';
 export default function App() {
   const [bots, setBots] = useState([]);
 
-//   useEffect(() => {
-//     const handler = (data) => setBots(data);
-//     socket.on('bots', handler);
-//     return () => socket.off('bots', handler);
-//   }, []);
+  useEffect(() => {
+    const handler = (data) => setBots(data);
+    socket.on('bots', handler);
+    return () => socket.off('bots', handler);
+  }, []);
 
 
   //testing
 
-  useEffect(() => {
+  /*seEffect(() => {
     socket.connect()
     socket.on('connect', () => {
       console.log(' Connected:', socket.id)
@@ -32,7 +32,7 @@ export default function App() {
       console.log(' Error:', err.message)
     })
     return () => socket.disconnect()
-  }, [])
+  }, [])*/
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-blue-500/30 font-sans">
