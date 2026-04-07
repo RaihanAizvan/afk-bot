@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bot Control</title>
+  <style>
+    body {
+      background: #0f172a;
+      color: white;
+      font-family: Arial;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+    }
+
+    input, button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+    }
+
+    input {
+      background: #334155;
+      color: white;
+    }
+
+    button {
+      background: #3b82f6;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h3>MC Bot Panel</h3>
+
+  <input id="host" placeholder="Host" value="play.legionmc.in">
+  <input id="port" placeholder="Port (optional)">
+  <input id="username" placeholder="Username" value="AFK_BOT">
+
+  <button onclick="startBot()">Start</button>
+  <button onclick="stopBot()">Stop</button>
+
+  <input id="cmd" placeholder="Command">
+  <button onclick="sendCmd()">Send</button>
+
+  <div id="status">Idle</div>
+</div>
+
+<script>
+const BASE = "https://YOUR-RENDER-URL.onrender.com"
+
+async function startBot() {
+  const res = await fetch(BASE + "/start", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      host: document.getElementById("host").value,
+      port: document.getElementById("port").value || undefined,
+      username: document.getElementById("username").value
+    })
+  })
+  const data = await res.json()
+  status(data.msg)
+}
+
+async function stopBot() {
+  const res = await fetch(BASE + "/stop", { method: "POST" })
+  const data = await res.json()
+  status(data.msg)
+}
+
+async function sendCmd() {
+  const res = await fetch(BASE + "/command", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      cmd: document.getElementById("cmd").value
+    })
+  })
+  const data = await res.json()
+  status(data.msg)
+}
+
+function status(msg) {
+  document.getElementById("status").innerText = msg
+}
+</script>
+
+</body>
+</html>
