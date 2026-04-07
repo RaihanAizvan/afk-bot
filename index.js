@@ -185,6 +185,10 @@ app.get('/bots', (req, res) => {
 app.get('/', (req, res) => {
   res.send('Backend running')
 })
+app.get('/health', (req, res) => {
+  res.status(200).send('ok')
+})
+
 
 // ---- SOCKET ----
 // io.on('connection', (socket) => {
