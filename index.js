@@ -30,9 +30,13 @@ function log(id, message) {
 function broadcast() {
   const state = Object.keys(bots).map(id => ({
     id,
-    status: bots[id].status
-  }))
-  io.emit('bots', state)
+    status: bots[id].status,
+    username: bots[id].config.username,
+    health: bots[id].bot?.health || 20,
+    food: bots[id].bot?.food || 20,
+    pos: bots[id].bot?.entity?.position || { x: 0, y: 0, z: 0 }
+  }));
+  io.emit('bots', state);
 }
 
 // ---- CLEANUP ----
@@ -113,6 +117,8 @@ function createBot(id, config) {
   bot.on('kicked', (reason) => {
     log(id, `Kicked: ${reason}`)
   })
+  bot.on('health', () => broadcast());
+  bot.on('move', () => broadcast());
 }
 
 // ---- VALIDATION ----
@@ -124,13 +130,16 @@ function isValid(data) {
 
 // ---- ROUTES ----
 app.post('/start', (req, res) => {
-  const { id, host, port, username } = req.body
+  const { host, port, username } = req.body
 
-  if (!isValid(req.body)) {
-    return res.json({ msg: 'Invalid input' })
+  if (!host || !username) {
+    return res.json({ msg: 'Missing fields' })
   }
 
+  const id = username + '_' + Date.now()
+
   createBot(id, { host, port, username })
+
   res.json({ msg: 'Bot starting...' })
 })
 
