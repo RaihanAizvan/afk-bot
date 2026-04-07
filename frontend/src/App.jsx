@@ -9,10 +9,25 @@ export default function App() {
   const [bots, setBots] = useState([]);
 
   useEffect(() => {
-    const handler = (data) => setBots(data);
-    socket.on('bots', handler);
-    return () => socket.off('bots', handler);
-  }, []);
+    socket.connect()
+
+    const handler = (data) => setBots(data)
+
+    socket.on('connect', () => {
+      console.log('✅ Socket connected:', socket.id)
+    })
+
+    socket.on('connect_error', (err) => {
+      console.log('❌ Socket error:', err.message)
+    })
+
+    socket.on('bots', handler)
+
+    return () => {
+      socket.off('bots', handler)
+      socket.disconnect()
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-blue-500/30 font-sans">
@@ -26,7 +41,7 @@ export default function App() {
     <div className="h-5 w-[1px] bg-neutral-800 mx-2" />
     <h1 className="text-sm font-medium tracking-tight text-neutral-300 flex items-center gap-2">
     User <ChevronRight size={14} className="text-neutral-600" />
-    <span className="text-white font-semibold">Fleet-Console</span>
+    <span className="text-white font-semibold">BOT-Console</span>
     </h1>
     </div>
     <div className="flex gap-6 items-center text-sm">

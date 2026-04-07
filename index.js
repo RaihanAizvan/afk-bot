@@ -8,7 +8,10 @@ const app = express()
 const server = http.createServer(app)
 
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 })
 
 app.use(cors())
@@ -192,6 +195,6 @@ io.on('connection', (socket) => {
 })
 
 // ---- START ----
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on ${PORT}`)
 })
