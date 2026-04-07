@@ -8,25 +8,30 @@ import socket from './services/socket';
 export default function App() {
   const [bots, setBots] = useState([]);
 
+//   useEffect(() => {
+//     const handler = (data) => setBots(data);
+//     socket.on('bots', handler);
+//     return () => socket.off('bots', handler);
+//   }, []);
+
+
+  //testing
+
   useEffect(() => {
     socket.connect()
-
-    const handler = (data) => setBots(data)
-
     socket.on('connect', () => {
-      console.log('✅ Socket connected:', socket.id)
+      console.log(' Connected:', socket.id)
     })
-
+    socket.on('test', (msg) => {
+      console.log(' Test from server:', msg)
+    })
+    socket.on('pong', (msg) => {
+      console.log(' Pong:', msg)
+    })
     socket.on('connect_error', (err) => {
-      console.log('❌ Socket error:', err.message)
+      console.log(' Error:', err.message)
     })
-
-    socket.on('bots', handler)
-
-    return () => {
-      socket.off('bots', handler)
-      socket.disconnect()
-    }
+    return () => socket.disconnect()
   }, [])
 
   return (

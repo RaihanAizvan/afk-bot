@@ -186,12 +186,25 @@ app.get('/', (req, res) => {
 })
 
 // ---- SOCKET ----
+// io.on('connection', (socket) => {
+//   const state = Object.keys(bots).map(id => ({
+//     id,
+//     status: bots[id].status
+//   }))
+//   socket.emit('bots', state)
+// })
+
+// testing
+
 io.on('connection', (socket) => {
-  const state = Object.keys(bots).map(id => ({
-    id,
-    status: bots[id].status
-  }))
-  socket.emit('bots', state)
+  console.log('Socket connected:', socket.id)
+
+  // 👇 test event
+  socket.emit('test', 'backend alive')
+
+  socket.on('ping', () => {
+    socket.emit('pong', 'still alive')
+  })
 })
 
 // ---- START ----
