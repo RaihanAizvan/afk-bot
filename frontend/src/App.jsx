@@ -9,6 +9,7 @@ export default function App() {
   const [bots, setBots] = useState([]);
 
   useEffect(() => {
+    socket.connect()
     const handler = (data) => setBots(data);
     socket.on('bots', handler);
     return () => socket.off('bots', handler);
