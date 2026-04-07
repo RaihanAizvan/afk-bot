@@ -9,21 +9,23 @@ function App() {
   const [bots, setBots] = useState([])
 
   useEffect(() => {
-    socket.on('bots', (data) => {
-      setBots(data)
-    })
+    const handler = (data) => setBots(data)
+
+    socket.on('bots', handler)
+
+    return () => socket.off('bots', handler)
   }, [])
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Bot Dashboard</h2>
+    <div className="container">
+      <h1>Bot Dashboard</h1>
 
       <BotForm />
 
-      <h3>Active Bots</h3>
-      {bots.map(b => <BotCard key={b.id} bot={b} />)}
+      <div className="grid">
+        {bots.map(b => <BotCard key={b.id} bot={b} />)}
+      </div>
 
-      <h3>Logs</h3>
       <Logs />
     </div>
   )

@@ -9,20 +9,24 @@ export default function BotForm() {
     username: ''
   })
 
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
   const startBot = async () => {
     await API.post('/start', form)
   }
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div className="card">
       <h3>Create Bot</h3>
 
-      <input placeholder="ID" onChange={e => setForm({...form, id: e.target.value})} />
-      <input placeholder="Host" onChange={e => setForm({...form, host: e.target.value})} />
-      <input placeholder="Port" onChange={e => setForm({...form, port: e.target.value})} />
-      <input placeholder="Username" onChange={e => setForm({...form, username: e.target.value})} />
+      <input name="id" placeholder="ID" onChange={handleChange} />
+      <input name="host" placeholder="Host" onChange={handleChange} />
+      <input name="port" placeholder="Port" onChange={handleChange} />
+      <input name="username" placeholder="Username" onChange={handleChange} />
 
-      <button onClick={startBot}>Start Bot</button>
+      <button onClick={startBot}>Start</button>
     </div>
   )
 }

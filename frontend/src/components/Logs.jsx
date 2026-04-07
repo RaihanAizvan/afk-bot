@@ -5,19 +5,17 @@ export default function Logs() {
   const [logs, setLogs] = useState([])
 
   useEffect(() => {
-    socket.on('log', (data) => {
-      setLogs(prev => [...prev.slice(-50), data.message])
-    })
+    const handler = (data) => {
+      setLogs(prev => [...prev.slice(-100), data.message])
+    }
+
+    socket.on('log', handler)
+
+    return () => socket.off('log', handler)
   }, [])
 
   return (
-    <div style={{
-      background: '#111',
-      color: '#0f0',
-      padding: 10,
-      height: 200,
-      overflow: 'auto'
-    }}>
+    <div className="logs">
       {logs.map((l, i) => <div key={i}>{l}</div>)}
     </div>
   )

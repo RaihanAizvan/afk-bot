@@ -1,34 +1,44 @@
+import { useState } from 'react'
 import API from '../services/api'
 
 export default function BotCard({ bot }) {
+  const [cmd, setCmd] = useState('')
 
-  const stopBot = async () => {
-    await API.post('/stop', { id: bot.id })
-  }
+  const stop = () => API.post('/stop', { id: bot.id })
 
-  const sendCommand = async () => {
-    const cmd = prompt("Command?")
+  const send = () => {
     if (!cmd) return
-
-    await API.post('/command', { id: bot.id, cmd })
+    API.post('/command', { id: bot.id, cmd })
+    setCmd('')
   }
 
-  const color =
-    bot.status === 'online' ? 'green' :
-    bot.status === 'connecting' ? 'orange' :
-    bot.status === 'error' ? 'red' : 'gray'
+  const colorMap = {
+    online: 'lime',
+    connecting: 'orange',
+    error: 'red',
+    offline: 'gray'
+  }
 
   return (
-    <div style={{
-      border: '1px solid #444',
-      padding: 10,
-      marginBottom: 10
-    }}>
+    <div className="card">
       <h4>{bot.id}</h4>
-      <p>Status: <span style={{ color }}>{bot.status}</span></p>
 
-      <button onClick={sendCommand}>Command</button>
-      <button onClick={stopBot}>Stop</button>
+      <p>
+        Status: <span style={{ color: colorMap[bot.status] }}>
+          {bot.status}
+        </span>
+      </p>
+
+      <div className="row">
+        <input
+          placeholder="Command..."
+          value={cmd}
+          onChange={(e) => setCmd(e.target.value)}
+        />
+        <button onClick={send}>Send</button>
+      </div>
+
+      <button onClick={stop}>Stop</button>
     </div>
   )
 }
