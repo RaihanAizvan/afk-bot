@@ -6,10 +6,10 @@ const socket = io('https://afk-bot-u105.onrender.com', {
 })
 
 
-const socket = io('http://localhost:3000', {
-    autoConnect: false,
-    transports: ['websocket'],
-})
+// const socket = io('http://localhost:3000', {
+//     autoConnect: false,
+//     transports: ['websocket'],
+// })
 
 
 export default socket
