@@ -1,96 +1,180 @@
 const mineflayer = require('mineflayer')
 const express = require('express')
 const cors = require('cors')
+const http = require('http')
+const { Server } = require('socket.io')
 
 const app = express()
+const server = http.createServer(app)
 
-// FORCE CORS (important)
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*")
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
-  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-
-  // handle preflight RIGHT HERE
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200)
-  }
-
-  next()
+const io = new Server(server, {
+  cors: { origin: "*" }
 })
 
-app.use(cors()) // keep it, but this alone isn't enough sometimes
+app.use(cors())
 app.use(express.json())
 
+// ---- CONFIG ----
 const PORT = process.env.PORT || 3000
 
-let bot = null
-let shouldReconnect = true
+// ---- STATE ----
+const bots = {} // id → { bot, status, config }
 
-function createBot(config) {
-    if (bot) return
+// ---- LOG SYSTEM ----
+function log(id, message) {
+  const time = new Date().toLocaleTimeString()
+  const logMsg = `[${time}] [${id}] ${message}`
+  console.log(logMsg)
 
-    shouldReconnect = true
-
-    bot = mineflayer.createBot({
-        host: config.host,
-        port: config.port || undefined,
-        username: config.username
-    })
-
-    bot.on('spawn', () => {
-        console.log('Bot joined')
-    })
-
-    bot.on('end', () => {
-        console.log('Bot disconnected')
-        bot = null
-
-        if (shouldReconnect) {
-            setTimeout(() => createBot(config), 5000)
-        }
-    })
-
-    bot.on('error', (err) => {
-        console.log('Error:', err.message)
-    })
+  io.emit('log', { id, message: logMsg })
 }
 
-// --- API ROUTES ---
+function broadcast() {
+  const state = Object.keys(bots).map(id => ({
+    id,
+    status: bots[id].status
+  }))
+  io.emit('bots', state)
+}
 
+// ---- BOT CREATION ----
+function createBot(id, config) {
+  if (bots[id]) return
 
+  log(id, 'Creating bot...')
 
+  const bot = mineflayer.createBot({
+    host: config.host,
+    port: config.port || undefined,
+    username: config.username,
+    version: '1.20.1'
+  })
+
+  bots[id] = {
+    bot,
+    status: 'connecting',
+    config,
+    shouldReconnect: true
+  }
+
+  broadcast()
+
+  bot.on('spawn', () => {
+    bots[id].status = 'online'
+    log(id, 'Joined server')
+    broadcast()
+  })
+
+  bot.on('end', () => {
+    log(id, 'Disconnected')
+    bots[id].status = 'offline'
+    broadcast()
+
+    if (bots[id].shouldReconnect) {
+      log(id, 'Reconnecting in 5s...')
+      setTimeout(() => {
+        createBot(id, config)
+      }, 5000)
+    } else {
+      delete bots[id]
+    }
+  })
+
+  bot.on('error', (err) => {
+    bots[id].status = 'error'
+    log(id, `Error: ${err.message}`)
+    broadcast()
+  })
+
+  bot.on('kicked', (reason) => {
+    log(id, `Kicked: ${reason}`)
+  })
+
+  bot.on('chat', (username, message) => {
+    log(id, `<${username}> ${message}`)
+  })
+}
+
+// ---- API ROUTES ----
+
+// Start bot
 app.post('/start', (req, res) => {
-    const { host, port, username } = req.body
+  const { id, host, port, username } = req.body
 
-    if (bot) return res.json({ msg: 'Bot already running' })
+  if (!id || !host || !username) {
+    return res.json({ msg: 'Missing fields' })
+  }
 
-    createBot({ host, port, username })
-    res.json({ msg: 'Bot starting...' })
+  if (bots[id]) {
+    return res.json({ msg: 'Bot already exists' })
+  }
+
+  createBot(id, { host, port, username })
+
+  res.json({ msg: 'Bot starting...' })
 })
 
+// Stop bot
 app.post('/stop', (req, res) => {
-    if (!bot) return res.json({ msg: 'No bot running' })
+  const { id } = req.body
 
-    shouldReconnect = false
-    bot.quit()
-    bot = null
+  if (!bots[id]) {
+    return res.json({ msg: 'Bot not found' })
+  }
 
-    res.json({ msg: 'Bot stopped' })
+  bots[id].shouldReconnect = false
+  bots[id].bot.quit()
+
+  log(id, 'Stopped manually')
+
+  delete bots[id]
+  broadcast()
+
+  res.json({ msg: 'Bot stopped' })
 })
 
+// Send command
 app.post('/command', (req, res) => {
-    const { cmd } = req.body
+  const { id, cmd } = req.body
 
-    if (!bot) return res.json({ msg: 'Bot not running' })
+  if (!bots[id]) {
+    return res.json({ msg: 'Bot not found' })
+  }
 
-    bot.chat(cmd)
-    res.json({ msg: 'Command sent' })
+  bots[id].bot.chat(cmd)
+  log(id, `Command sent: ${cmd}`)
+
+  res.json({ msg: 'Command sent' })
 })
 
+// Get status
+app.get('/bots', (req, res) => {
+  const state = Object.keys(bots).map(id => ({
+    id,
+    status: bots[id].status
+  }))
+  res.json(state)
+})
+
+// Health check
 app.get('/', (req, res) => {
-    res.send('Backend running')
+  res.send('Backend running')
 })
 
-app.listen(PORT, () => {
-    console.log('Server running')
+// ---- SOCKET ----
+io.on('connection', (socket) => {
+  console.log('Frontend connected')
+
+  // send initial state
+  const state = Object.keys(bots).map(id => ({
+    id,
+    status: bots[id].status
+  }))
+
+  socket.emit('bots', state)
+})
+
+// ---- START ----
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
 })
