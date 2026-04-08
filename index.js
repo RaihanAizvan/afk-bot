@@ -90,43 +90,50 @@ function createBot(id, config) {
 
   broadcast()
 
+  function parseMsg(json) {
+    let text = ''
+    let type = 'system'
+
+    function walk(node) {
+      if (!node) return
+
+        // plain text
+        if (node.text) text += node.text
+
+          // translate (like join/leave)
+          if (node.translate) {
+            if (node.with && Array.isArray(node.with)) {
+              node.with.forEach(w => walk(w))
+            }
+          }
+
+          // extra array
+          if (node.extra) {
+            node.extra.forEach(walk)
+          }
+
+          // detect chat (username)
+          if (node.clickEvent || node.insertion) {
+            type = 'chat'
+          }
+    }
+
+    walk(json)
+
+    return { text, type }
+  }
+
   bot.once('spawn', () => {
     bots[id].status = 'online'
     log(id, 'Joined server')
     broadcast()
   })
 
-  // ✅ MAIN (works on most servers)
   bot.on('message', (jsonMsg, position) => {
-    const msg = jsonMsg.toString()
-
-    let type = 'system'
-    if (position === 'chat') type = 'chat'
-      else if (position === 'game_info') type = 'game_info'
-
-        log(id, msg, type)
+    const msg = parseMsg(jsonMsg)
+    log(id, msg.text, msg.type)
   })
 
-
-  //raw packet fallback
-
-  bot._client.on('system_chat', (packet) => {
-    try {
-      const msg = JSON.parse(packet.content).text || packet.content
-      log(id, msg, 'system')
-    } catch {
-      log(id, packet.content, 'system')
-    }
-  })
-
-  bot._client.on('player_chat', (packet) => {
-    try {
-      const msg = JSON.parse(packet.plainMessage).text || packet.plainMessage
-      log(id, msg, 'chat')
-    } catch {
-      log(id, packet.plainMessage, 'chat')
-    }
-  })
 
 
   bot.on('actionBar', (msg) => {
