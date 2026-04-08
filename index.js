@@ -24,12 +24,19 @@ const PORT = process.env.PORT || 3000
 const bots = {} // id → { bot, status, config, reconnectTimeout }
 
 // ---- LOG ----
-function log(id, message) {
+function log(id, message, type = 'system') {
   const time = new Date().toLocaleTimeString()
-  const msg = `[${time}] [${id}] ${message}`
-  console.log(msg)
-  io.emit('log', { id, message: msg })
+
+  io.emit('log', {
+    id,
+    type,
+    message,
+    time
+  })
+
+  console.log(`[${time}] [${id}] ${message}`)
 }
+
 function broadcast() {
   const state = Object.keys(bots).map(id => ({
     id,
@@ -90,8 +97,45 @@ function createBot(id, config) {
     broadcast()
   })
 
-  bot.on('chat', (username, message) => {
-    log(id, `<${username}> ${message}`)
+  // ✅ MAIN (works on most servers)
+  bot.on('message', (jsonMsg, position) => {
+    const msg = jsonMsg.toString()
+
+    let type = 'system'
+    if (position === 'chat') type = 'chat'
+      else if (position === 'game_info') type = 'game_info'
+
+        log(id, msg, type)
+  })
+
+
+  //raw packet fallback
+
+  bot._client.on('system_chat', (packet) => {
+    try {
+      const msg = JSON.parse(packet.content).text || packet.content
+      log(id, msg, 'system')
+    } catch {
+      log(id, packet.content, 'system')
+    }
+  })
+
+  bot._client.on('player_chat', (packet) => {
+    try {
+      const msg = JSON.parse(packet.plainMessage).text || packet.plainMessage
+      log(id, msg, 'chat')
+    } catch {
+      log(id, packet.plainMessage, 'chat')
+    }
+  })
+
+
+  bot.on('actionBar', (msg) => {
+    log(id, msg.toString(), 'game_info')
+  })
+
+  bot.on('title', (title) => {
+    log(id, title.toString(), 'system')
   })
 
   bot.once('end', () => {
@@ -197,7 +241,14 @@ io.on('connection', (socket) => {
     id,
     status: bots[id].status
   }))
-  socket.emit('bots', state)
+  socket.emit('bots', Object.values(bots).map(b => ({
+    id: b.config.username,
+    status: b.status,
+    username: b.config.username,
+    health: b.bot?.health || 20,
+    food: b.bot?.food || 20,
+    pos: b.bot?.entity?.position || { x: 0, y: 0, z: 0 }
+  })))
 })
 
 // testing
