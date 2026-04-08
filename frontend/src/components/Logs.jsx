@@ -12,8 +12,21 @@ export default function Logs() {
   }, []);
 
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logs]);
+    socket.on('log', (data) => {
+      setLogs(prev => [...prev.slice(-100), data])
+    })
+
+    return () => socket.off('log')
+  }, [])
+
+  const getColor = (type) => {
+    switch (type) {
+      case 'chat': return 'text-white'
+      case 'system': return 'text-yellow-400'
+      case 'game_info': return 'text-cyan-400'
+      default: return 'text-neutral-400'
+    }
+  }
 
   return (
     <div className="bg-black border border-neutral-800 rounded-lg overflow-hidden flex flex-col h-[400px]">
@@ -24,15 +37,23 @@ export default function Logs() {
     <div className="w-2 h-2 rounded-full bg-neutral-800" />
     </div>
     </div>
-    <div className="flex-1 overflow-y-auto p-4 space-y-1.5 scrollbar-hide">
+    <div className="bg-black p-3 h-64 overflow-y-auto font-mono text-sm">
     {logs.map((log, i) => (
-      <div key={i} className="font-mono text-[11px] leading-relaxed group flex gap-3">
-      <span className="text-neutral-700 shrink-0 select-none">
-      {new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+      <div key={i} className={getColor(log.type)}>
+
+      <span className="text-neutral-500 mr-2">
+      [{log.time}]
       </span>
-      <span className="text-neutral-300 break-all">{log}</span>
+
+      <span className="text-blue-400 mr-2">
+      [{log.id}]
+      </span>
+
+      {log.message}
+
       </div>
     ))}
+    </div>
     <div ref={logEndRef} />
     </div>
     </div>
