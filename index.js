@@ -27,7 +27,7 @@ const bots = {} // id → { bot, status, config, reconnectTimeout }
 function log(id, message, type = 'system') {
   const time = new Date().toLocaleTimeString()
 
-  io.emit('log', {
+  io.emit(`log:${id}`, {
     id,
     type,
     message,
@@ -36,7 +36,6 @@ function log(id, message, type = 'system') {
 
   console.log(`[${time}] [${id}] ${message}`)
 }
-
 function broadcast() {
   const state = Object.keys(bots).map(id => ({
     id,
@@ -237,33 +236,15 @@ app.get('/health', (req, res) => {
 
 // ---- SOCKET ----
 io.on('connection', (socket) => {
-  const state = Object.keys(bots).map(id => ({
+  socket.emit('bots', Object.keys(bots).map(id => ({
     id,
-    status: bots[id].status
-  }))
-  socket.emit('bots', Object.values(bots).map(b => ({
-    id: b.config.username,
-    status: b.status,
-    username: b.config.username,
-    health: b.bot?.health || 20,
-    food: b.bot?.food || 20,
-    pos: b.bot?.entity?.position || { x: 0, y: 0, z: 0 }
+    status: bots[id].status,
+    username: bots[id].config.username,
+    health: bots[id].bot?.health || 20,
+    food: bots[id].bot?.food || 20,
+    pos: bots[id].bot?.entity?.position || { x: 0, y: 0, z: 0 }
   })))
 })
-
-// testing
-
-// io.on('connection', (socket) => {
-//   console.log('Socket connected:', socket.id)
-//
-//   // 👇 test event
-//   socket.emit('test', 'backend alive')
-//
-//   socket.on('ping', () => {
-//     socket.emit('pong', 'still alive')
-//   })
-// })
-
 // ---- START ----
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on ${PORT}`)

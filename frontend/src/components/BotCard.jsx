@@ -1,92 +1,75 @@
-import { Power, Send, Cpu, Activity } from 'lucide-react';
-import API from '../services/api';
-import { useState } from 'react';
+import { useEffect, useState } from 'react'
+import API from '../services/api'
+import socket from '../services/socket'
 
 export default function BotCard({ bot }) {
-  const [cmd, setCmd] = useState('');
-  const isOnline = bot.status === 'online';
+  const [logs, setLogs] = useState([])
+  const [input, setInput] = useState('')
+
+  useEffect(() => {
+    const handler = (data) => {
+      setLogs(prev => [...prev.slice(-50), data])
+    }
+
+    socket.on(`log:${bot.id}`, handler)
+
+    return () => socket.off(`log:${bot.id}`, handler)
+  }, [bot.id])
 
   const sendCommand = async () => {
-    // Prevent sending if empty or if bot is offline
-    if (!cmd.trim()) return;
+    if (!input) return
+      await API.post('/command', { id: bot.id, cmd: input })
+      setInput('')
+  }
 
-    try {
-      console.log(`Sending to ${bot.id}: ${cmd}`); // Debug check
-      const response = await API.post('/command', {
-        id: bot.id,
-        cmd: cmd
-      });
-
-      console.log('Server response:', response.data);
-      setCmd(''); // Clear input on success
-    } catch (error) {
-      console.error('Failed to send command:', error);
-    }
-  };
-
-  // Allow pressing "Enter" to send
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      sendCommand();
-    }
-  };
+  const stopBot = async () => {
+    await API.post('/stop', { id: bot.id })
+  }
 
   return (
-    <div className="group relative bg-black border border-neutral-800 rounded-lg p-5 hover:border-neutral-500 transition-all duration-300">
-    <div className="flex justify-between items-start">
-    <div className="flex items-center gap-4">
-    <div className="relative">
-    <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500' : 'bg-neutral-700'}`} />
-    {isOnline && <div className="absolute inset-0 w-3 h-3 rounded-full bg-green-500 animate-ping opacity-75" />}
-    </div>
+    <div className="border border-neutral-800 rounded-lg p-4 bg-neutral-900/40">
+
+    <div className="flex justify-between items-center mb-3">
     <div>
-    <h3 className="font-bold text-lg text-neutral-100">{bot.username || bot.id.split('_')[0]}</h3>
-    <p className="text-xs text-neutral-500 font-mono">{bot.id}</p>
+    <h4 className="font-semibold">{bot.username}</h4>
+    <p className="text-xs text-neutral-400">{bot.status}</p>
     </div>
-    </div>
-    <button
-    onClick={() => API.post('/stop', { id: bot.id })}
-    className="p-2 text-neutral-500 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all"
-    title="Stop Bot"
-    >
-    <Power size={18} />
+
+    <button onClick={stopBot} className="text-xs bg-red-500 px-2 py-1 rounded">
+    Stop
     </button>
     </div>
 
-    {/* Stats Grid */}
-    <div className="mt-6 flex gap-8 items-center border-t border-neutral-900 pt-5">
-    <div className="flex items-center gap-2">
-    <Activity size={14} className="text-neutral-600" />
-    <span className="text-xs text-neutral-400 font-medium">{bot.health || 20} HP</span>
-    </div>
-    <div className="flex items-center gap-2">
-    <Cpu size={14} className="text-neutral-600" />
-    <span className="text-xs text-neutral-400 font-medium">Stable</span>
-    </div>
-    <div className="ml-auto">
-    <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider ${isOnline ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-neutral-800 text-neutral-400'}`}>
-    {bot.status}
-    </span>
-    </div>
+    {/* CHAT WINDOW */}
+    <div className="border border-neutral-800 rounded-lg overflow-hidden">
+
+    <div className="h-40 overflow-y-auto bg-black p-2 text-sm font-mono">
+    {logs.map((log, i) => (
+      <div key={i} className="text-white">
+      <span className="text-neutral-500 mr-1">[{log.time}]</span>
+      {log.message}
+      </div>
+    ))}
     </div>
 
-    {/* Inline Command Input - CONNECTED TO STATE */}
-    <div className="mt-5 flex gap-2">
+    <div className="flex border-t border-neutral-800">
     <input
-    className="flex-1 bg-neutral-900 border border-neutral-800 text-sm rounded-md px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-neutral-700 text-white"
-    placeholder="Send command to bot..."
-    value={cmd} // CONNECTED
-    onChange={(e) => setCmd(e.target.value)} // CONNECTED
-    onKeyDown={handleKeyDown} // ADDED ENTER SUPPORT
+    value={input}
+    onChange={(e) => setInput(e.target.value)}
+    placeholder="Type command..."
+    className="flex-1 bg-black px-2 py-1 text-sm outline-none"
     />
+
     <button
-    onClick={sendCommand} // CONNECTED
-    disabled={!isOnline}
-    className="bg-white text-black px-3 rounded-md hover:bg-neutral-200 transition-colors disabled:bg-neutral-800 disabled:text-neutral-500 disabled:cursor-not-allowed"
+    onClick={sendCommand}
+    className="px-3 bg-white text-black text-xs"
     >
-    <Send size={14} />
+    Send
     </button>
     </div>
+
     </div>
-  );
+
+    </div>
+  )
 }
