@@ -44,12 +44,24 @@ export default function BotCard({ bot }) {
     <div className="border border-neutral-800 rounded-lg overflow-hidden">
 
     <div className="h-40 overflow-y-auto bg-black p-2 text-sm font-mono">
-    {logs.map((log, i) => (
+    {logs.map((log, i) => {
+      let message = ''
+
+    if (typeof log.message === 'string') {
+      message = log.message
+    } else if (log.message?.text) {
+      message = log.message.text
+    } else {
+      message = JSON.stringify(log.message)
+    }
+
+    return (
       <div key={i} className="text-white">
       <span className="text-neutral-500 mr-1">[{log.time}]</span>
-      {log.message}
+      {message}
       </div>
-    ))}
+    )
+    })}
     </div>
 
     <div className="flex border-t border-neutral-800">
