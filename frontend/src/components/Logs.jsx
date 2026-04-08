@@ -9,7 +9,7 @@ export default function Logs() {
     const handler = (data) => {
       setLogs(prev => [...prev.slice(-100), data])
     }
-
+    console.log(log)
     socket.on('log', handler)
 
     return () => socket.off('log', handler)
