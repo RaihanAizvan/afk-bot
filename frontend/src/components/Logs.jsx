@@ -6,17 +6,13 @@ export default function Logs() {
   const logEndRef = useRef(null);
 
   useEffect(() => {
-    const handler = (data) => setLogs(prev => [...prev.slice(-100), data.message]);
-    socket.on('log', handler);
-    return () => socket.off('log', handler);
-  }, []);
-
-  useEffect(() => {
-    socket.on('log', (data) => {
+    const handler = (data) => {
       setLogs(prev => [...prev.slice(-100), data])
-    })
+    }
 
-    return () => socket.off('log')
+    socket.on('log', handler)
+
+    return () => socket.off('log', handler)
   }, [])
 
   const getColor = (type) => {
@@ -55,7 +51,6 @@ export default function Logs() {
     ))}
     </div>
     <div ref={logEndRef} />
-    </div>
     </div>
   );
 }
